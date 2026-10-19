@@ -18,8 +18,6 @@ Format the output clearly with exact price levels.
 
 
 
-*Go To MenthorQ and Login With Tempmail*
+*Go To MenQ and Login With Temail*
 
-*Go To dashboard and give the upper prompt to QUIN AI Of MenthorQ*
-
-*You will get the levels*
+*Go To dashboard and give the upper prompt to A!*
