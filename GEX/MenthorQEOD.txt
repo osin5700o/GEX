@@ -1,0 +1,183 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © osinrdx5700o
+
+//@version=5
+indicator("MenthorQ | End of Day", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// ==========================================
+// INPUTS: MAIN LEVELS
+// ==========================================
+grp_main = "MAIN LEVELS"
+use_cr       = input.bool(true, title="Call Resistance", group=grp_main, inline="cr")
+price_cr     = input.string("0.0", title="", group=grp_main, inline="cr")
+col_cr       = input.color(#FF4A1C, title="", group=grp_main, inline="cr")
+
+use_ps       = input.bool(true, title="Put Support", group=grp_main, inline="ps")
+price_ps     = input.string("0.0", title="", group=grp_main, inline="ps")
+col_ps       = input.color(#4CAF50, title="", group=grp_main, inline="ps")
+
+use_hvl      = input.bool(true, title="HVL", group=grp_main, inline="hvl")
+price_hvl    = input.string("0.0", title="", group=grp_main, inline="hvl")
+col_hvl      = input.color(#2196F3, title="", group=grp_main, inline="hvl")
+
+use_1dmin    = input.bool(true, title="1D Min", group=grp_main, inline="1dmin")
+price_1dmin  = input.string("0.0", title="", group=grp_main, inline="1dmin")
+col_1dmin    = input.color(#FFA726, title="", group=grp_main, inline="1dmin")
+
+use_1dmax    = input.bool(true, title="1D Max", group=grp_main, inline="1dmax")
+price_1dmax  = input.string("0.0", title="", group=grp_main, inline="1dmax")
+col_1dmax    = input.color(#FFA726, title="", group=grp_main, inline="1dmax")
+
+use_gflip    = input.bool(true, title="Gamma Flip", group=grp_main, inline="gflip")
+price_gflip  = input.string("0.0", title="", group=grp_main, inline="gflip")
+col_gflip    = input.color(#FFD54F, title="", group=grp_main, inline="gflip")
+
+
+// ==========================================
+// INPUTS: GEX LEVELS
+// ==========================================
+grp_gex = "GEX LEVELS"
+col_gex_def = #00BCD4
+
+use_gex1  = input.bool(true, title="GEX 1", group=grp_gex, inline="g1")
+price_g1  = input.string("0.0", title="", group=grp_gex, inline="g1")
+col_g1    = input.color(col_gex_def, title="", group=grp_gex, inline="g1")
+
+use_gex2  = input.bool(true, title="GEX 2", group=grp_gex, inline="g2")
+price_g2  = input.string("0.0", title="", group=grp_gex, inline="g2")
+col_g2    = input.color(col_gex_def, title="", group=grp_gex, inline="g2")
+
+use_gex3  = input.bool(true, title="GEX 3", group=grp_gex, inline="g3")
+price_g3  = input.string("0.0", title="", group=grp_gex, inline="g3")
+col_g3    = input.color(col_gex_def, title="", group=grp_gex, inline="g3")
+
+
+// ==========================================
+// DISPLAY OPTIONS
+// ==========================================
+grp_disp = "STYLE & SPECIFICATIONS"
+show_labels  = input.bool(true, title="Show Labels", group=grp_disp)
+time_offset  = input.int(30, title="Time Offset (intervals)", group=grp_disp)
+lbl_format   = input.string("Short", title="Label Format", options=["Short", "Long"], group=grp_disp)
+lbl_font_sz  = input.string("Medium", title="Label Font Size", options=["Tiny", "Small", "Medium", "Normal", "Large"], group=grp_disp)
+line_style   = input.string("Dotted", title="Line Style", options=["Solid", "Dashed", "Dotted"], group=grp_disp)
+
+
+// ==========================================
+// GLOBAL HELPER FUNCTIONS
+// ==========================================
+f_size(string sz) =>
+    sz == "Tiny" ? size.tiny : sz == "Small" ? size.small : sz == "Medium" ? size.normal : sz == "Normal" ? size.normal : size.large
+
+f_style(string s) =>
+    s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
+
+f_name(string short_txt, string long_txt) =>
+    lbl_format == "Short" ? short_txt : long_txt
+
+// Helper to clean commas from string inputs and convert to float
+f_to_float(string s) =>
+    string cleaned = str.replace_all(s, ",", "")
+    float val = str.tonumber(cleaned)
+    nz(val, 0.0)
+
+f_add_lvl(bool active, float price, string short_n, string long_n, color col, float[] p_arr, string[] n_arr, color[] c_arr) =>
+    if active and price != 0.0
+        array.push(p_arr, price)
+        array.push(n_arr, f_name(short_n, long_n))
+        array.push(c_arr, col)
+
+
+// ==========================================
+// PARSE PRICES
+// ==========================================
+p_cr_val    = f_to_float(price_cr)
+p_ps_val    = f_to_float(price_ps)
+p_hvl_val   = f_to_float(price_hvl)
+p_1dmin_val = f_to_float(price_1dmin)
+p_1dmax_val = f_to_float(price_1dmax)
+p_gflip_val = f_to_float(price_gflip)
+p_g1_val    = f_to_float(price_g1)
+p_g2_val    = f_to_float(price_g2)
+p_g3_val    = f_to_float(price_g3)
+
+
+// ==========================================
+// PRICE SCALE TAGS (TRACKPRICE PLOTS)
+// ==========================================
+plot(use_cr and p_cr_val != 0.0 ? p_cr_val : na, title="CR Tag", color=col_cr, trackprice=true, display=display.price_scale)
+plot(use_ps and p_ps_val != 0.0 ? p_ps_val : na, title="PS Tag", color=col_ps, trackprice=true, display=display.price_scale)
+plot(use_hvl and p_hvl_val != 0.0 ? p_hvl_val : na, title="HVL Tag", color=col_hvl, trackprice=true, display=display.price_scale)
+plot(use_1dmin and p_1dmin_val != 0.0 ? p_1dmin_val : na, title="1D Min Tag", color=col_1dmin, trackprice=true, display=display.price_scale)
+plot(use_1dmax and p_1dmax_val != 0.0 ? p_1dmax_val : na, title="1D Max Tag", color=col_1dmax, trackprice=true, display=display.price_scale)
+plot(use_gflip and p_gflip_val != 0.0 ? p_gflip_val : na, title="Gamma Flip Tag", color=col_gflip, trackprice=true, display=display.price_scale)
+plot(use_gex1 and p_g1_val != 0.0 ? p_g1_val : na, title="GEX 1 Tag", color=col_g1, trackprice=true, display=display.price_scale)
+plot(use_gex2 and p_g2_val != 0.0 ? p_g2_val : na, title="GEX 2 Tag", color=col_g2, trackprice=true, display=display.price_scale)
+plot(use_gex3 and p_g3_val != 0.0 ? p_g3_val : na, title="GEX 3 Tag", color=col_g3, trackprice=true, display=display.price_scale)
+
+
+// ==========================================
+// RENDER LOGIC
+// ==========================================
+var line[] lines_array = array.new_line()
+var label[] labels_array = array.new_label()
+
+if barstate.islast
+    // Clear old drawings
+    if array.size(lines_array) > 0
+        for i = 0 to array.size(lines_array) - 1
+            line.delete(array.get(lines_array, i))
+        array.clear(lines_array)
+        
+    if array.size(labels_array) > 0
+        for i = 0 to array.size(labels_array) - 1
+            label.delete(array.get(labels_array, i))
+        array.clear(labels_array)
+
+    // Data arrays
+    float[] p_arr = array.new_float()
+    string[] n_arr = array.new_string()
+    color[] c_arr = array.new_color()
+
+    // Collect levels
+    f_add_lvl(use_cr, p_cr_val, "CR", "Call Resistance", col_cr, p_arr, n_arr, c_arr)
+    f_add_lvl(use_ps, p_ps_val, "PS", "Put Support", col_ps, p_arr, n_arr, c_arr)
+    f_add_lvl(use_hvl, p_hvl_val, "HVL", "HVL", col_hvl, p_arr, n_arr, c_arr)
+    f_add_lvl(use_1dmin, p_1dmin_val, "1D Min", "1D Min", col_1dmin, p_arr, n_arr, c_arr)
+    f_add_lvl(use_1dmax, p_1dmax_val, "1D Max", "1D Max", col_1dmax, p_arr, n_arr, c_arr)
+    f_add_lvl(use_gflip, p_gflip_val, "GF", "Gamma Flip", col_gflip, p_arr, n_arr, c_arr)
+    f_add_lvl(use_gex1, p_g1_val, "G1", "GEX 1", col_g1, p_arr, n_arr, c_arr)
+    f_add_lvl(use_gex2, p_g2_val, "G2", "GEX 2", col_g2, p_arr, n_arr, c_arr)
+    f_add_lvl(use_gex3, p_g3_val, "G3", "GEX 3", col_g3, p_arr, n_arr, c_arr)
+
+    // Cluster matching levels by price
+    int count = array.size(p_arr)
+    if count > 0
+        bool[] handled = array.new_bool(count, false)
+
+        for i = 0 to count - 1
+            if not array.get(handled, i)
+                float current_p = array.get(p_arr, i)
+                string combined_title = array.get(n_arr, i)
+                color current_c = array.get(c_arr, i)
+                array.set(handled, i, true)
+
+                // Merge names for identical levels (e.g. CR 0DTE | GW 0DTE)
+                if i < count - 1
+                    for j = i + 1 to count - 1
+                        if not array.get(handled, j) and array.get(p_arr, j) == current_p
+                            combined_title := combined_title + " | " + array.get(n_arr, j)
+                            array.set(handled, j, true)
+
+                // Draw line
+                line l = line.new(x1=bar_index - 100, y1=current_p, x2=bar_index + time_offset, y2=current_p,
+                                  extend=extend.both, color=current_c, style=f_style(line_style), width=1)
+                array.push(lines_array, l)
+
+                // Draw label
+                if show_labels
+                    label lb = label.new(x=bar_index + time_offset, y=current_p, 
+                                         text=combined_title, 
+                                         textcolor=color.white, color=current_c, 
+                                         style=label.style_label_left, size=f_size(lbl_font_sz))
+                    array.push(labels_array, lb)
