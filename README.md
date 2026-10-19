@@ -1,2 +1,0 @@
-# MenthorQ
-MentorQ GEX Levels
